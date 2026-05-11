@@ -1,6 +1,6 @@
-# Comshop Management System
+# OG Gaming Hub
 
-A desktop computer shop management system built with Python + CustomTkinter + MySQL (XAMPP). Final project for IPTC312.
+A desktop gaming hub management system built with Python + CustomTkinter + MySQL (XAMPP). Final project for IPTC312.
 
 ## Features
 

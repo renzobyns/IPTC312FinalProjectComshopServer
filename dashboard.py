@@ -14,7 +14,7 @@ class Dashboard(ctk.CTkToplevel):
         self._after_id = None
         self._open_modules = {}  # name -> window instance
 
-        self.title("Comshop Management System — Dashboard")
+        self.title("OG Gaming Hub — Dashboard")
         self.geometry("1180x720")
         self.minsize(1100, 660)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
@@ -55,9 +55,9 @@ class Dashboard(ctk.CTkToplevel):
         logo = ctk.CTkFrame(sidebar, fg_color="transparent", height=90)
         logo.pack(fill="x", pady=(20, 6))
         logo.pack_propagate(False)
-        ctk.CTkLabel(logo, text="⚡ COMSHOP",
+        ctk.CTkLabel(logo, text="⚡ OG GAMING HUB",
                      font=ctk.CTkFont(size=22, weight="bold")).pack(pady=(6, 0))
-        ctk.CTkLabel(logo, text="Management System",
+        ctk.CTkLabel(logo, text="Gaming Hub Management",
                      font=ctk.CTkFont(size=11),
                      text_color="gray").pack()
 

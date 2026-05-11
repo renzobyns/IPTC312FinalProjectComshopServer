@@ -1,11 +1,11 @@
-# COMSHOP MANAGEMENT SYSTEM
+# OG GAMING HUB
 ## User Manual Documentation
 
 ---
 
 | Field | Details |
 |---|---|
-| **System Title** | Comshop Management System |
+| **System Title** | OG Gaming Hub |
 | **Document Type** | User Manual Documentation |
 | **Course / Subject** | IPTC312 |
 | **Instructor** | _(Instructor Name)_ |
@@ -37,7 +37,7 @@
 
 ## 1. INTRODUCTION
 
-The Comshop Management System is a desktop application developed to streamline the daily operations of a computer shop business. Computer shops traditionally rely on manual tracking of PC usage, customer billing, food orders, and printing services — a process that is prone to errors, slow, and difficult to audit. This system replaces those manual methods with a digital, database-driven solution.
+The OG Gaming Hub is a desktop application developed to streamline the daily operations of a computer shop business. Computer shops traditionally rely on manual tracking of PC usage, customer billing, food orders, and printing services — a process that is prone to errors, slow, and difficult to audit. This system replaces those manual methods with a digital, database-driven solution.
 
 The system is built using Python with the CustomTkinter library for a modern graphical user interface, connected to a MySQL database hosted through XAMPP for reliable local data storage. It is intended for use by shop cashiers and administrators who need to manage PC sessions, sell food and drinks, process printing transactions, and review daily revenue — all from a single application.
 
@@ -47,7 +47,7 @@ The scope of the system covers seven core operational modules: PC unit managemen
 
 ## 2. SYSTEM OVERVIEW
 
-The Comshop Management System operates entirely as a desktop application running on a Windows machine. The user interface is built with Python and the CustomTkinter library, which provides a modern dark-themed graphical interface with buttons, forms, dropdown menus, and data tables. All user inputs and actions are processed by Python logic that communicates directly with a MySQL database running through XAMPP's MySQL service.
+The OG Gaming Hub operates entirely as a desktop application running on a Windows machine. The user interface is built with Python and the CustomTkinter library, which provides a modern dark-themed graphical interface with buttons, forms, dropdown menus, and data tables. All user inputs and actions are processed by Python logic that communicates directly with a MySQL database running through XAMPP's MySQL service.
 
 The system uses the `mysql-connector-python` library to establish a connection between the Python application and the `comshop_db` database. Every time a user performs an action — such as starting a session, processing a food order, or adding a product — the system sends a SQL query to the database, which stores or retrieves the relevant data and reflects the result immediately in the interface.
 
@@ -100,7 +100,7 @@ Both libraries can be installed via pip (see Section 4).
 
 ## 4. INSTALLATION GUIDE
 
-Follow these steps carefully to set up and run the Comshop Management System on a new machine.
+Follow these steps carefully to set up and run the OG Gaming Hub on a new machine.
 
 ### Step 1 — Install Python
 
@@ -326,7 +326,7 @@ When starting a session, if the entered duration matches a package's hours, the 
 
 ## 7. DATABASE INTERACTION
 
-The Comshop Management System stores all data in a MySQL database named `comshop_db`, running locally through XAMPP. The database contains 8 tables: `users`, `pc_units`, `time_packages`, `products`, `print_services`, `sessions`, `transactions`, and `transaction_items`.
+The OG Gaming Hub stores all data in a MySQL database named `comshop_db`, running locally through XAMPP. The database contains 8 tables: `users`, `pc_units`, `time_packages`, `products`, `print_services`, `sessions`, `transactions`, and `transaction_items`.
 
 Every time a user performs an action in the system, the Python application connects to MySQL, sends a SQL query, and immediately reflects the result in the interface. The connection is opened only for the duration of each individual operation and is closed immediately after — this keeps the system lightweight and prevents stale connections.
 
@@ -563,7 +563,7 @@ The login screen acts as a gate — no module can be opened without a valid logi
 
 ## 14. REFLECTION
 
-Working on the Comshop Management System provided meaningful experience in developing a real-world desktop application from the ground up. Connecting a Python GUI to a live MySQL database required careful handling of database connections, query parameterization, and ensuring data consistency across multiple related tables.
+Working on the OG Gaming Hub provided meaningful experience in developing a real-world desktop application from the ground up. Connecting a Python GUI to a live MySQL database required careful handling of database connections, query parameterization, and ensuring data consistency across multiple related tables.
 
 One of the most challenging aspects was designing the session billing flow. The system needed to calculate billing upfront (for both hourly and package-based sessions), show a payment confirmation to the cashier, issue a receipt immediately, and later allow cancellation with full reversal of the transaction — all while keeping the database in a consistent state.
 

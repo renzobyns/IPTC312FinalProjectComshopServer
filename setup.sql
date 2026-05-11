@@ -1,4 +1,4 @@
--- Comshop Management System — Database Setup
+-- OG Gaming Hub — Database Setup
 -- Run this once in phpMyAdmin or: mysql -u root < setup.sql
 
 CREATE DATABASE IF NOT EXISTS comshop_db;

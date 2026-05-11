@@ -6,7 +6,7 @@ from auth import verify_login
 class LoginScreen(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Comshop Management System")
+        self.title("OG Gaming Hub")
         self.geometry("440x540")
         self.resizable(False, False)
         self._center()
@@ -20,8 +20,8 @@ class LoginScreen(ctk.CTk):
 
     def _build_ui(self):
         ctk.CTkLabel(self, text="⚡", font=ctk.CTkFont(size=48)).pack(pady=(40, 0))
-        ctk.CTkLabel(self, text="COMSHOP", font=ctk.CTkFont(size=38, weight="bold")).pack(pady=(0, 2))
-        ctk.CTkLabel(self, text="Management System", font=ctk.CTkFont(size=14)).pack()
+        ctk.CTkLabel(self, text="OG GAMING HUB", font=ctk.CTkFont(size=38, weight="bold")).pack(pady=(0, 2))
+        ctk.CTkLabel(self, text="Gaming Hub Management", font=ctk.CTkFont(size=14)).pack()
         ctk.CTkLabel(self, text="Administrator Login", font=ctk.CTkFont(size=11),
                      text_color="gray").pack(pady=(4, 26))
 

@@ -434,7 +434,7 @@ class ReceiptDialog(ctk.CTkToplevel):
         bring_to_front(self)
 
     def _build(self, d):
-        ctk.CTkLabel(self, text="COMSHOP RECEIPT",
+        ctk.CTkLabel(self, text="OG GAMING HUB RECEIPT",
                      font=ctk.CTkFont(size=18, weight="bold")).pack(pady=(20, 4))
         ctk.CTkLabel(self, text="─" * 46, text_color="gray").pack()
 

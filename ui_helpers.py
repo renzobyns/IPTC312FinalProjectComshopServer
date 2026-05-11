@@ -1,4 +1,4 @@
-"""Shared UI utilities for the comshop app."""
+"""Shared UI utilities for OG Gaming Hub."""
 import customtkinter as ctk
 
 
