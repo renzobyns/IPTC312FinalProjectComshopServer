@@ -35,9 +35,18 @@ class LoginScreen(ctk.CTk):
 
         ctk.CTkLabel(frame, text="Password", anchor="w",
                      font=ctk.CTkFont(size=13)).pack(padx=24, pady=(14, 4), fill="x")
-        self.password_entry = ctk.CTkEntry(frame, placeholder_text="Enter password",
+
+        pw_row = ctk.CTkFrame(frame, fg_color="transparent")
+        pw_row.pack(padx=24, fill="x")
+        self.password_entry = ctk.CTkEntry(pw_row, placeholder_text="Enter password",
                                            show="●", height=42)
-        self.password_entry.pack(padx=24, fill="x")
+        self.password_entry.pack(side="left", fill="x", expand=True)
+        self._show_pw = False
+        ctk.CTkButton(
+            pw_row, text="👁", width=42, height=42,
+            fg_color="transparent", hover_color=("gray75", "gray25"),
+            command=self._toggle_password,
+        ).pack(side="left", padx=(6, 0))
 
         self.login_btn = ctk.CTkButton(
             frame, text="LOGIN", height=46,
@@ -48,6 +57,10 @@ class LoginScreen(ctk.CTk):
 
         self.password_entry.bind("<Return>", lambda _: self._attempt_login())
         self.username_entry.bind("<Return>", lambda _: self.password_entry.focus())
+
+    def _toggle_password(self):
+        self._show_pw = not self._show_pw
+        self.password_entry.configure(show="" if self._show_pw else "●")
 
     def _attempt_login(self):
         username = self.username_entry.get().strip()
