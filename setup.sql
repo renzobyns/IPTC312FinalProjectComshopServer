@@ -65,12 +65,14 @@ CREATE TABLE sessions (
     FOREIGN KEY (package_id) REFERENCES time_packages(id)
 );
 
+-- Migration for existing DBs: ALTER TABLE transactions ADD COLUMN status ENUM('completed','refunded') DEFAULT 'completed';
 CREATE TABLE transactions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     type ENUM('pc_rental','food','printing') NOT NULL,
     reference_id INT NULL,
     customer_name VARCHAR(100) NOT NULL,
     total_amount DECIMAL(8,2) NOT NULL,
+    status ENUM('completed','refunded') DEFAULT 'completed',
     datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
     processed_by INT NULL,
     FOREIGN KEY (processed_by) REFERENCES users(id)

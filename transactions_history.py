@@ -38,6 +38,12 @@ class TransactionsHistory(ctk.CTkToplevel):
                                       command=lambda _: self._load_data())
         type_menu.pack(side="left", padx=8)
 
+        ctk.CTkLabel(filter_frame, text="Status:").pack(side="left")
+        self._status_var = ctk.StringVar(value="All")
+        ctk.CTkOptionMenu(filter_frame, variable=self._status_var, width=120, height=32,
+                          values=["All", "Completed", "Refunded"],
+                          command=lambda _: self._load_data()).pack(side="left", padx=8)
+
         ctk.CTkLabel(filter_frame, text="Customer:").pack(side="left")
         self._cust_var = ctk.StringVar()
         self._cust_var.trace_add("write", lambda *_: self._load_data())
@@ -58,16 +64,19 @@ class TransactionsHistory(ctk.CTkToplevel):
         tree_frame = ctk.CTkFrame(self)
         tree_frame.pack(padx=22, pady=(8, 0), fill="both", expand=True)
 
-        cols = ("ID", "Type", "Customer", "Total", "Date & Time", "Processed By")
+        cols = ("ID", "Type", "Customer", "Total", "Date & Time", "Processed By", "Status")
         self.tree = ttk.Treeview(tree_frame, columns=cols, show="headings", selectmode="browse")
         for col in cols:
             self.tree.heading(col, text=col)
         self.tree.column("ID", width=50, anchor="center")
         self.tree.column("Type", width=110, anchor="center")
-        self.tree.column("Customer", width=160)
+        self.tree.column("Customer", width=150)
         self.tree.column("Total", width=100, anchor="center")
-        self.tree.column("Date & Time", width=160, anchor="center")
-        self.tree.column("Processed By", width=140)
+        self.tree.column("Date & Time", width=150, anchor="center")
+        self.tree.column("Processed By", width=130)
+        self.tree.column("Status", width=100, anchor="center")
+
+        self.tree.tag_configure("refunded", foreground="#ef4444")
 
         sb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=sb.set)
@@ -97,6 +106,12 @@ class TransactionsHistory(ctk.CTkToplevel):
             conditions.append("t.type = %s")
             params.append(type_val)
 
+        status_val = self._status_var.get()
+        if status_val == "Completed":
+            conditions.append("(t.status = 'completed' OR t.status IS NULL)")
+        elif status_val == "Refunded":
+            conditions.append("t.status = 'refunded'")
+
         cust = self._cust_var.get().strip()
         if cust:
             conditions.append("t.customer_name LIKE %s")
@@ -123,7 +138,7 @@ class TransactionsHistory(ctk.CTkToplevel):
             c = conn.cursor()
             c.execute(f"""
                 SELECT t.id, t.type, t.customer_name, t.total_amount,
-                       t.datetime, COALESCE(u.full_name,'—')
+                       t.datetime, COALESCE(u.full_name,'—'), COALESCE(t.status,'completed')
                 FROM transactions t
                 LEFT JOIN users u ON t.processed_by = u.id
                 {where}
@@ -144,14 +159,16 @@ class TransactionsHistory(ctk.CTkToplevel):
         self.tree.delete(*self.tree.get_children())
         type_labels = {"pc_rental": "PC Rental", "food": "Food", "printing": "Printing"}
         for row in rows:
-            tid, ttype, customer, amount, dt, processed = row
-            self.tree.insert("", "end", values=(
+            tid, ttype, customer, amount, dt, processed, status = row
+            tag = ("refunded",) if status == "refunded" else ()
+            self.tree.insert("", "end", tags=tag, values=(
                 tid,
                 type_labels.get(ttype, ttype),
                 customer,
                 f"₱{float(amount):,.2f}",
                 dt.strftime("%Y-%m-%d %H:%M") if dt else "—",
                 processed,
+                "Refunded" if status == "refunded" else "Completed",
             ))
 
         self._summary_label.configure(
@@ -160,6 +177,7 @@ class TransactionsHistory(ctk.CTkToplevel):
 
     def _clear_filters(self):
         self._type_var.set("All")
+        self._status_var.set("All")
         self._cust_var.set("")
         self._date_var.set("")
 
@@ -209,8 +227,10 @@ class TransactionDetail(ctk.CTkToplevel):
         info = ctk.CTkFrame(self, fg_color="transparent")
         info.pack(padx=24, pady=4, fill="x")
         type_labels = {"pc_rental": "PC Rental", "food": "Food", "printing": "Printing"}
+        status_label = "Refunded" if trans.get("status") == "refunded" else "Completed"
         for label, val in [
             ("Type:", type_labels.get(trans["type"], trans["type"])),
+            ("Status:", status_label),
             ("Customer:", trans["customer_name"]),
             ("Date/Time:", trans["datetime"].strftime("%Y-%m-%d %H:%M:%S") if trans["datetime"] else "—"),
             ("Processed By:", trans["proc_name"]),

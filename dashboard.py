@@ -211,7 +211,8 @@ class Dashboard(ctk.CTkToplevel):
                 c.execute("SELECT COUNT(*) FROM pc_units WHERE status='occupied'")
                 occupied = c.fetchone()[0]
                 c.execute(
-                    "SELECT COALESCE(SUM(total_amount),0) FROM transactions WHERE DATE(datetime)=%s",
+                    "SELECT COALESCE(SUM(total_amount),0) FROM transactions "
+                    "WHERE DATE(datetime)=%s AND (status IS NULL OR status='completed')",
                     (date.today(),),
                 )
                 revenue = float(c.fetchone()[0])
@@ -223,7 +224,8 @@ class Dashboard(ctk.CTkToplevel):
 
                 # Recent transactions (last 10)
                 c.execute("""
-                    SELECT t.datetime, t.type, t.customer_name, t.total_amount
+                    SELECT t.datetime, t.type, t.customer_name, t.total_amount,
+                           COALESCE(t.status,'completed')
                     FROM transactions t
                     ORDER BY t.datetime DESC
                     LIMIT 10
@@ -231,10 +233,13 @@ class Dashboard(ctk.CTkToplevel):
                 rows = c.fetchall()
                 self._recent_tree.delete(*self._recent_tree.get_children())
                 type_labels = {"pc_rental": "PC Rental", "food": "Food", "printing": "Printing"}
-                for dt, ttype, customer, amount in rows:
+                for dt, ttype, customer, amount, status in rows:
+                    type_label = type_labels.get(ttype, ttype)
+                    if status == "refunded":
+                        type_label += " (Refunded)"
                     self._recent_tree.insert("", "end", values=(
                         dt.strftime("%Y-%m-%d %H:%M") if dt else "—",
-                        type_labels.get(ttype, ttype),
+                        type_label,
                         customer,
                         f"₱{float(amount):,.2f}",
                     ))

@@ -402,8 +402,7 @@ class SessionManagement(ctk.CTkToplevel):
         try:
             c = conn.cursor()
             if trans_id:
-                c.execute("DELETE FROM transaction_items WHERE transaction_id=%s", (trans_id,))
-                c.execute("DELETE FROM transactions WHERE id=%s", (trans_id,))
+                c.execute("UPDATE transactions SET status='refunded' WHERE id=%s", (trans_id,))
             c.execute(
                 "UPDATE sessions SET end_time=%s, status='cancelled' WHERE id=%s",
                 (datetime.now(), session_id),
