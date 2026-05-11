@@ -217,6 +217,20 @@ class TransactionDetail(ctk.CTkToplevel):
             trans = c.fetchone()
             c.execute("SELECT * FROM transaction_items WHERE transaction_id=%s", (trans_id,))
             items = c.fetchall()
+
+            pc_name = None
+            pc_deleted = False
+            if trans and trans["type"] == "pc_rental" and trans["reference_id"]:
+                c.execute("""
+                    SELECT p.unit_name
+                    FROM sessions s
+                    LEFT JOIN pc_units p ON s.pc_id = p.id
+                    WHERE s.id=%s
+                """, (trans["reference_id"],))
+                row = c.fetchone()
+                if row:
+                    pc_name = row["unit_name"]
+                    pc_deleted = pc_name is None
         finally:
             conn.close()
 
@@ -228,19 +242,26 @@ class TransactionDetail(ctk.CTkToplevel):
         info.pack(padx=24, pady=4, fill="x")
         type_labels = {"pc_rental": "PC Rental", "food": "Food", "printing": "Printing"}
         status_label = "Refunded" if trans.get("status") == "refunded" else "Completed"
-        for label, val in [
+        info_rows = [
             ("Type:", type_labels.get(trans["type"], trans["type"])),
             ("Status:", status_label),
+        ]
+        if trans["type"] == "pc_rental":
+            info_rows.append(("PC Unit:", "(Deleted)" if pc_deleted else (pc_name or "—")))
+        info_rows += [
             ("Customer:", trans["customer_name"]),
             ("Date/Time:", trans["datetime"].strftime("%Y-%m-%d %H:%M:%S") if trans["datetime"] else "—"),
             ("Processed By:", trans["proc_name"]),
-        ]:
+        ]
+        for label, val in info_rows:
             row = ctk.CTkFrame(info, fg_color="transparent")
             row.pack(fill="x", pady=1)
             ctk.CTkLabel(row, text=label, width=120, anchor="w",
                          font=ctk.CTkFont(size=12)).pack(side="left")
+            is_deleted_pc = (label == "PC Unit:" and pc_deleted)
             ctk.CTkLabel(row, text=str(val), anchor="w",
-                         font=ctk.CTkFont(size=12, weight="bold")).pack(side="left")
+                         font=ctk.CTkFont(size=12, weight="bold"),
+                         text_color="#ef4444" if is_deleted_pc else None).pack(side="left")
 
         ctk.CTkLabel(self, text="Items:", font=ctk.CTkFont(size=13, weight="bold"),
                      anchor="w").pack(padx=24, pady=(8, 4), fill="x")

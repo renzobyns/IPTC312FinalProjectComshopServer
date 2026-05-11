@@ -51,7 +51,7 @@ CREATE TABLE print_services (
 
 CREATE TABLE sessions (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    pc_id INT NOT NULL,
+    pc_id INT NULL,
     customer_name VARCHAR(100) NOT NULL,
     billing_type ENUM('hourly','package') NOT NULL DEFAULT 'hourly',
     package_id INT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE sessions (
     total_amount DECIMAL(8,2) NULL,
     -- Migration for existing DBs: ALTER TABLE sessions MODIFY status ENUM('active','completed','cancelled') DEFAULT 'active';
     status ENUM('active','completed','cancelled') DEFAULT 'active',
-    FOREIGN KEY (pc_id) REFERENCES pc_units(id),
+    FOREIGN KEY (pc_id) REFERENCES pc_units(id) ON DELETE SET NULL,
     FOREIGN KEY (package_id) REFERENCES time_packages(id)
 );
 
