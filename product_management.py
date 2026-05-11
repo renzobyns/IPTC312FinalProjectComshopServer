@@ -139,7 +139,7 @@ class ProductForm(ctk.CTkToplevel):
         self.data = data
         self.on_save = on_save
         self.title("Add Product" if mode == "add" else "Edit Product")
-        self.geometry("370x360")
+        self.geometry("370x430")
         self._build()
         self.grab_set()
         bring_to_front(self)
