@@ -12,7 +12,7 @@ class PrintingPOS(ctk.CTkToplevel):
         self.user = user
         self._services = []
         self.title("Printing Services")
-        self.geometry("520x500")
+        self.geometry("520x560")
         self.resizable(False, False)
         self._center()
         self._build_ui()
@@ -22,8 +22,8 @@ class PrintingPOS(ctk.CTkToplevel):
     def _center(self):
         self.update_idletasks()
         x = (self.winfo_screenwidth() - 520) // 2
-        y = (self.winfo_screenheight() - 500) // 2
-        self.geometry(f"520x500+{x}+{y}")
+        y = (self.winfo_screenheight() - 560) // 2
+        self.geometry(f"520x560+{x}+{y}")
 
     def _build_ui(self):
         section_header(self, "🖨  Printing Services", accent_color="#06b6d4")
@@ -33,7 +33,7 @@ class PrintingPOS(ctk.CTkToplevel):
 
         ctk.CTkLabel(form, text="Service Type:", anchor="w").pack(padx=24, pady=(20, 4), fill="x")
         self.service_menu = ctk.CTkOptionMenu(form, values=[], height=38,
-                                              command=self._update_total)
+                                              command=self._on_service_change)
         self.service_menu.pack(padx=24, fill="x")
 
         ctk.CTkLabel(form, text="Customer Name:", anchor="w").pack(padx=24, pady=(14, 4), fill="x")
@@ -44,6 +44,11 @@ class PrintingPOS(ctk.CTkToplevel):
         self.pages_entry = ctk.CTkEntry(form, height=38, placeholder_text="e.g. 5")
         self.pages_entry.pack(padx=24, fill="x")
         self.pages_entry.bind("<KeyRelease>", lambda _: self._update_total())
+
+        ctk.CTkLabel(form, text="Price per Page (₱):", anchor="w").pack(padx=24, pady=(14, 4), fill="x")
+        self.price_entry = ctk.CTkEntry(form, height=38, placeholder_text="e.g. 2.00")
+        self.price_entry.pack(padx=24, fill="x")
+        self.price_entry.bind("<KeyRelease>", lambda _: self._update_total())
 
         self.total_label = ctk.CTkLabel(form, text="Total: ₱0.00",
                                         font=ctk.CTkFont(size=14, weight="bold"))
@@ -67,6 +72,14 @@ class PrintingPOS(ctk.CTkToplevel):
         self.service_menu.configure(values=labels if labels else ["No services"])
         if labels:
             self.service_menu.set(labels[0])
+            self._on_service_change()
+
+    def _on_service_change(self, *_):
+        svc = self._get_selected_service()
+        if svc:
+            self.price_entry.delete(0, "end")
+            self.price_entry.insert(0, f"{float(svc[2]):.2f}")
+        self._update_total()
 
     def _get_selected_service(self):
         label = self.service_menu.get()
@@ -76,21 +89,19 @@ class PrintingPOS(ctk.CTkToplevel):
         return None
 
     def _update_total(self, *_):
-        svc = self._get_selected_service()
-        if not svc:
-            return
         try:
+            price = float(self.price_entry.get())
             pages = int(self.pages_entry.get())
-            if pages <= 0:
+            if price < 0 or pages <= 0:
                 raise ValueError
-            total = pages * float(svc[2])
-            self.total_label.configure(text=f"Total: ₱{total:,.2f}")
+            self.total_label.configure(text=f"Total: ₱{pages * price:,.2f}")
         except (ValueError, TypeError):
             self.total_label.configure(text="Total: ₱0.00")
 
     def _process(self):
         customer = self.customer_entry.get().strip()
         pages_str = self.pages_entry.get().strip()
+        price_str = self.price_entry.get().strip()
         svc = self._get_selected_service()
 
         if not customer:
@@ -107,8 +118,16 @@ class PrintingPOS(ctk.CTkToplevel):
             messagebox.showwarning("Validation",
                                    "Please enter a valid positive number for pages.", parent=self)
             return
+        try:
+            price = float(price_str)
+            if price < 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showwarning("Validation",
+                                   "Please enter a valid price per page.", parent=self)
+            return
 
-        total = pages * float(svc[2])
+        total = pages * price
         item_name = f"{svc[1]} × {pages} page(s)"
 
         conn = get_connection()
@@ -125,7 +144,7 @@ class PrintingPOS(ctk.CTkToplevel):
             c.execute(
                 "INSERT INTO transaction_items (transaction_id, item_name, quantity, unit_price, subtotal) "
                 "VALUES (%s,%s,%s,%s,%s)",
-                (trans_id, item_name, pages, float(svc[2]), total),
+                (trans_id, item_name, pages, price, total),
             )
             conn.commit()
         finally:
@@ -133,13 +152,13 @@ class PrintingPOS(ctk.CTkToplevel):
 
         self.customer_entry.delete(0, "end")
         self.pages_entry.delete(0, "end")
-        self.total_label.configure(text="Total: ₱0.00")
+        self._on_service_change()  # resets price to service default and clears total
         self.dashboard.refresh_stats()
 
         ReceiptDialog(self, {
             "trans_id": trans_id,
             "type": "Printing",
             "customer": customer,
-            "items": [(item_name, pages, float(svc[2]), total)],
+            "items": [(item_name, pages, price, total)],
             "total": total,
         })
