@@ -131,6 +131,15 @@ class PCManagement(ctk.CTkToplevel):
                 messagebox.showwarning("Cannot Delete",
                                        "This PC has an active session. End the session first.", parent=self)
                 return
+            c.execute("SELECT COUNT(*) FROM sessions WHERE pc_id=%s", (pc_id,))
+            if c.fetchone()[0] > 0:
+                messagebox.showwarning(
+                    "Cannot Delete",
+                    "This PC has session history records and cannot be deleted.\n"
+                    "You can set its status to Maintenance instead.",
+                    parent=self,
+                )
+                return
         finally:
             conn.close()
         if not messagebox.askyesno("Confirm Delete", "Delete this PC unit?", parent=self):
@@ -142,9 +151,12 @@ class PCManagement(ctk.CTkToplevel):
             c = conn.cursor()
             c.execute("DELETE FROM pc_units WHERE id=%s", (pc_id,))
             conn.commit()
+            self._on_save()
+        except Exception as e:
+            conn.rollback()
+            messagebox.showerror("Delete Failed", f"Could not delete PC unit.\n\n{e}", parent=self)
         finally:
             conn.close()
-        self._on_save()
 
     def _set_all_rates(self):
         SetAllRatesDialog(self, on_save=self._on_save)
