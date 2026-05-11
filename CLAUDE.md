@@ -63,7 +63,7 @@ All reusable UI components live in `ui_helpers.py` and `tree_style.py`.
 `transactions` → `transaction_items`  
 `transactions.processed_by` → `users.id`
 
-Session billing supports two modes: `hourly` (rate from `pc_units.rate_per_hour`) and `package` (fixed price from `time_packages`).
+Session billing is **prepaid**: the transaction is created (and receipt shown) when the session *starts*, not when it ends. Both billing modes compute a fixed price upfront — `hourly` (hours × `pc_units.rate_per_hour`) and `package` (fixed price from `time_packages`). `sessions.status` can be `active`, `completed`, or `cancelled`; cancelled sessions have their transaction deleted (full refund).
 
 ## Adding a New Module
 

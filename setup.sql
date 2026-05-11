@@ -59,7 +59,8 @@ CREATE TABLE sessions (
     start_time DATETIME NOT NULL,
     end_time DATETIME NULL,
     total_amount DECIMAL(8,2) NULL,
-    status ENUM('active','completed') DEFAULT 'active',
+    -- Migration for existing DBs: ALTER TABLE sessions MODIFY status ENUM('active','completed','cancelled') DEFAULT 'active';
+    status ENUM('active','completed','cancelled') DEFAULT 'active',
     FOREIGN KEY (pc_id) REFERENCES pc_units(id),
     FOREIGN KEY (package_id) REFERENCES time_packages(id)
 );

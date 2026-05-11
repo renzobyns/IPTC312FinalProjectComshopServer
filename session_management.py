@@ -85,6 +85,9 @@ class SessionManagement(ctk.CTkToplevel):
         ctk.CTkButton(hdr, text="End Session", width=110, height=30,
                       fg_color="#b03a2e", hover_color="#e74c3c",
                       command=self._end_session).pack(side="right", padx=6)
+        ctk.CTkButton(hdr, text="Cancel & Refund", width=130, height=30,
+                      fg_color="#d97706", hover_color="#f59e0b",
+                      command=self._cancel_session).pack(side="right", padx=(0, 6))
 
         tree_frame = ctk.CTkFrame(right)
         tree_frame.pack(padx=12, pady=4, fill="both", expand=True)
@@ -239,10 +242,23 @@ class SessionManagement(ctk.CTkToplevel):
             billing = "package"
             package_id = matched_pkg[0]
             locked_amount = float(matched_pkg[3])
+            item_name = f"{pc_name} — {matched_pkg[1]} ({hours:.1f}h)"
         else:
             billing = "hourly"
             package_id = None
             locked_amount = round(hours * rate, 2)
+            item_name = f"{pc_name} — {hours:.1f}h × ₱{rate:.2f}/hr"
+
+        if not messagebox.askyesno(
+            "Confirm Payment",
+            f"Collect payment from {customer}?\n\n"
+            f"PC: {pc_name}\n"
+            f"Duration: {hours:.1f} hour(s)\n"
+            f"Amount: ₱{locked_amount:,.2f}\n\n"
+            "Click Yes to process payment and start the session.",
+            parent=self,
+        ):
+            return
 
         conn = get_connection()
         if not conn:
@@ -256,6 +272,20 @@ class SessionManagement(ctk.CTkToplevel):
                 "VALUES (%s,%s,%s,%s,%s,%s,%s,'active')",
                 (pc_id, customer, billing, package_id, hours, datetime.now(), locked_amount),
             )
+            session_id = c.lastrowid
+            c.execute(
+                "INSERT INTO transactions "
+                "(type, reference_id, customer_name, total_amount, processed_by) "
+                "VALUES ('pc_rental',%s,%s,%s,%s)",
+                (session_id, customer, locked_amount, self.user["id"]),
+            )
+            trans_id = c.lastrowid
+            c.execute(
+                "INSERT INTO transaction_items "
+                "(transaction_id, item_name, quantity, unit_price, subtotal) "
+                "VALUES (%s,%s,%s,%s,%s)",
+                (trans_id, item_name, 1, locked_amount, locked_amount),
+            )
             c.execute("UPDATE pc_units SET status='occupied' WHERE id=%s", (pc_id,))
             conn.commit()
         finally:
@@ -268,16 +298,14 @@ class SessionManagement(ctk.CTkToplevel):
         self._refresh_sessions()
         self.dashboard.refresh_stats()
 
-        billing_desc = (
-            f"Package: {matched_pkg[1]} — ₱{locked_amount:,.2f}"
-            if matched_pkg
-            else f"Hourly: {hours}h × ₱{rate:,.2f}/hr = ₱{locked_amount:,.2f}"
-        )
-        messagebox.showinfo(
-            "Session Started",
-            f"Session started for {customer} on {pc_name}.\n{billing_desc}",
-            parent=self,
-        )
+        ReceiptDialog(self, {
+            "trans_id": trans_id,
+            "type": "PC Rental",
+            "customer": customer,
+            "items": [(item_name, 1, locked_amount, locked_amount)],
+            "total": locked_amount,
+            "duration": f"{hours:.1f} hour(s)",
+        })
 
     def _end_session(self):
         sel = self.tree.selection()
@@ -285,44 +313,24 @@ class SessionManagement(ctk.CTkToplevel):
             messagebox.showwarning("No Selection", "Please select an active session.", parent=self)
             return
 
-        session_id = self.tree.item(sel[0])["values"][0]
+        values = self.tree.item(sel[0])["values"]
+        session_id = values[0]
+        pc_name = values[1]
+        customer = values[2]
 
         conn = get_connection()
         if not conn:
             return
         try:
-            c = conn.cursor(dictionary=True)
-            c.execute("""
-                SELECT s.*, p.unit_name, p.rate_per_hour,
-                       tp.package_name, tp.price AS pkg_price
-                FROM sessions s
-                JOIN pc_units p ON s.pc_id = p.id
-                LEFT JOIN time_packages tp ON s.package_id = tp.id
-                WHERE s.id = %s
-            """, (session_id,))
-            sess = c.fetchone()
+            c = conn.cursor()
+            c.execute("SELECT pc_id FROM sessions WHERE id=%s", (session_id,))
+            row = c.fetchone()
         finally:
             conn.close()
 
-        if not sess:
+        if not row:
             return
 
-        # Price was locked at session start — use it directly
-        amount = float(sess["total_amount"])
-        preset_hrs = float(sess["preset_hours"]) if sess["preset_hours"] else 0.0
-
-        if sess["billing_type"] == "package":
-            item_name = (
-                f"{sess['unit_name']} — {sess['package_name']} "
-                f"({preset_hrs:.1f}h)"
-            )
-        else:
-            item_name = (
-                f"{sess['unit_name']} — {preset_hrs:.1f}h × "
-                f"₱{float(sess['rate_per_hour']):.2f}/hr"
-            )
-
-        end_time = datetime.now()
         conn = get_connection()
         if not conn:
             return
@@ -330,22 +338,9 @@ class SessionManagement(ctk.CTkToplevel):
             c = conn.cursor()
             c.execute(
                 "UPDATE sessions SET end_time=%s, status='completed' WHERE id=%s",
-                (end_time, session_id),
+                (datetime.now(), session_id),
             )
-            c.execute("UPDATE pc_units SET status='available' WHERE id=%s", (sess["pc_id"],))
-            c.execute(
-                "INSERT INTO transactions "
-                "(type, reference_id, customer_name, total_amount, processed_by) "
-                "VALUES ('pc_rental',%s,%s,%s,%s)",
-                (session_id, sess["customer_name"], amount, self.user["id"]),
-            )
-            trans_id = c.lastrowid
-            c.execute(
-                "INSERT INTO transaction_items "
-                "(transaction_id, item_name, quantity, unit_price, subtotal) "
-                "VALUES (%s,%s,%s,%s,%s)",
-                (trans_id, item_name, 1, amount, amount),
-            )
+            c.execute("UPDATE pc_units SET status='available' WHERE id=%s", (row[0],))
             conn.commit()
         finally:
             conn.close()
@@ -353,15 +348,79 @@ class SessionManagement(ctk.CTkToplevel):
         self._load_available_pcs()
         self._refresh_sessions()
         self.dashboard.refresh_stats()
+        messagebox.showinfo(
+            "Session Ended",
+            f"Session ended for {customer}.\n{pc_name} is now available.",
+            parent=self,
+        )
 
-        ReceiptDialog(self, {
-            "trans_id": trans_id,
-            "type": "PC Rental",
-            "customer": sess["customer_name"],
-            "items": [(item_name, 1, amount, amount)],
-            "total": amount,
-            "duration": f"{preset_hrs:.1f} hour(s)",
-        })
+    def _cancel_session(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showwarning("No Selection", "Please select an active session to cancel.", parent=self)
+            return
+
+        values = self.tree.item(sel[0])["values"]
+        session_id = values[0]
+        pc_name = values[1]
+        customer = values[2]
+
+        conn = get_connection()
+        if not conn:
+            return
+        try:
+            c = conn.cursor()
+            c.execute(
+                "SELECT s.pc_id, s.total_amount, t.id "
+                "FROM sessions s "
+                "LEFT JOIN transactions t ON t.reference_id = s.id AND t.type='pc_rental' "
+                "WHERE s.id=%s",
+                (session_id,),
+            )
+            row = c.fetchone()
+        finally:
+            conn.close()
+
+        if not row:
+            return
+
+        pc_id, total_amount, trans_id = row
+        amount = float(total_amount) if total_amount else 0.0
+
+        if not messagebox.askyesno(
+            "Cancel & Refund",
+            f"Cancel session for {customer} on {pc_name}?\n\n"
+            f"Refund amount: ₱{amount:,.2f}\n\n"
+            "This will void the transaction and free the PC.",
+            parent=self,
+        ):
+            return
+
+        conn = get_connection()
+        if not conn:
+            return
+        try:
+            c = conn.cursor()
+            if trans_id:
+                c.execute("DELETE FROM transaction_items WHERE transaction_id=%s", (trans_id,))
+                c.execute("DELETE FROM transactions WHERE id=%s", (trans_id,))
+            c.execute(
+                "UPDATE sessions SET end_time=%s, status='cancelled' WHERE id=%s",
+                (datetime.now(), session_id),
+            )
+            c.execute("UPDATE pc_units SET status='available' WHERE id=%s", (pc_id,))
+            conn.commit()
+        finally:
+            conn.close()
+
+        self._load_available_pcs()
+        self._refresh_sessions()
+        self.dashboard.refresh_stats()
+        messagebox.showinfo(
+            "Session Cancelled",
+            f"Session cancelled and refund of ₱{amount:,.2f} issued.\n{pc_name} is now available.",
+            parent=self,
+        )
 
 
 class ReceiptDialog(ctk.CTkToplevel):
